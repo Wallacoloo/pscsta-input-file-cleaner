@@ -10,35 +10,52 @@ import os
 unparsedCmds = sys.argv[1:]
 print unparsedCmds
 
-#rawFileMatcher = unparsedCmds[0] if len(unparsedCmds) else "*"
-
-#searchDir = os.path.dirname(rawFileMatcher)
-#matchFiles = os.path.split(rawFileMatcher)[1]
 files = unparsedCmds
 
 class Cleaner(object):
 	def __init__(self, files):
 		self.files = files
-	#def __init__(self, matchFiles="*", searchDir="."):
-	#	self.matchFiles = matchFiles
-	#	self.searchDir = searchDir
-	#def getMatchedFiles(self):
-	#	allInDir = os.listdir(self.searchDir)
-	#	print allInDir, self.matchFiles
-	#	matched = [os.path.join(self.searchDir, p) for p in allInDir if fnmatch.fnmatch(p, self.matchFiles)]
-	#	return matched
 	def getChanges(self):
 		return DirChangeSet.fromFiles(self.files)
+	def showUi(self):
+		changes = self.getChanges()
+		import Tkinter as Tk
+		root = Tk.Tk()
+		frame = Tk.Frame(root)
+		frame.pack()
+		for fChangeSet in changes.getFileChangeSets():
+			fFrame = Tk.Frame(frame)
+			for change in fChangeSet.getChanges():
+				var = Tk.IntVar()
+				def onChange(*args):
+					print var.get()
+					change.setApply(var.get())
+				check = Tk.Checkbutton(fFrame, command=onChange, variable=var)
+				if change.doApply():
+					check.select()
+				check.pack()
+			fFrame.pack()
+
+		applyBtn = Tk.Button(frame)
+		applyBtn["text"] = "Apply"
+		applyBtn["fg"]   = "black"
+		applyBtn["command"] = changes.applyChanges
+		applyBtn.pack({"side": "right"})
+		frame.mainloop()
+		root.destroy()
 
 class DirChangeSet(object):
 	@classmethod
 	def fromFiles(cls, files):
 		return cls([FileChangeSet(i) for i in files])
-
 	def __init__(self, fileChanges):
 		self.fileChanges = fileChanges
 	def __repr__(self):
 		return repr(self.fileChanges)
+	def getFileChangeSets(self):
+		return self.fileChanges
+	def applyChanges(self):
+		pass
 
 class FileChangeSet(object):
 	def __init__(self, fName):
@@ -47,6 +64,8 @@ class FileChangeSet(object):
 		self.findChanges()
 	def __repr__(self):
 		return repr(self.changes)
+	def getChanges(self):
+		return self.changes
 
 	def addChange(self, change):
 		self.changes.append(change)
@@ -66,6 +85,8 @@ class Change(object):
 	def __init__(self, idx, do=True):
 		self.idx = idx
 		self.do = do
+	def doApply(self): return self.do
+	def setApply(self, a=True): self.do = a
 	def __repr__(self):
 		return "Change(%s) at %i" %("Y" if self.do else "N", self.idx)
 
@@ -81,3 +102,5 @@ class ChangeLineEnding(Change):
 c = Cleaner(files)
 
 print c.getChanges()
+
+c.showUi()
