@@ -9,6 +9,7 @@ indent_mode=2
 [project]
 name=pscsta-input-file-cleaner
 base_path=/home/colin/projects/pscsta-input-file-cleaner
+description=
 
 [long line marker]
 long_line_behaviour=1
@@ -16,3 +17,5 @@ long_line_column=72
 
 [files]
 current_page=0
+FILE_NAME_0=732;Python;0;16;1;1;0;/home/colin/projects/pscsta-input-file-cleaner/__init__.py;0;4
+FILE_NAME_1=558;C++;0;16;1;1;0;/home/colin/projects/VSS_svn/svn/src/ui/freedraggable.lzz;0;4
