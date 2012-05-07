@@ -150,7 +150,12 @@ class DirChangeSet(object):
 	def getFileChangeSets(self):
 		return self.fileChanges
 	def applyChanges(self):
-		os.mkdir(self.outdir)
+		try:
+			os.mkdir(self.outdir)
+		except OSError:
+			pass #directory already exists.
+		for fSet in self.getFileChangeSets():
+			fSet.applyChanges()
 
 class FileChangeSet(object):
 	def __init__(self, fName):
@@ -164,6 +169,12 @@ class FileChangeSet(object):
 	def getChanges(self):
 		return self.changes
 	def getStr(self): return self.content
+	def setStr(self, s): self.context=s
+	def applyChanges(self):
+		offset = 0
+		for c in self.changes:
+			addOffset, self.content = c.applyChanges(offset, self.content)
+			offset += addOffset
 
 	def addChange(self, change):
 		self.changes.append(change)
@@ -186,6 +197,17 @@ class Change(object):
 		self.do = do
 	def doApply(self): return self.do
 	def setApply(self, a=True): self.do = a
+	def applyChanges(self, offset, inp):
+		if self.doApply():
+			self.idx += offset
+			try:
+				ret = self.derivedApply(inp)
+				self.idx -= offset
+				return ret
+			except:
+				self.idx -= offset #must do this to prevent potential errors later.
+				raise
+		return 0, inp
 	def getChar(self): return self.fChangeSet.getStr()[self.idx]
 	def lineNo(self):
 	    return sum(i == "\n" for i in self.fChangeSet.getStr()[:self.idx])
@@ -205,6 +227,7 @@ class Change(object):
 class UnicodeDoubleQuote(Change):
 	def desc(self):
 		return "Unicode double quote"
+
 class UnicodeSingleQuote(Change):
 	def desc(self):
 		return "Unicode quote"
@@ -214,6 +237,8 @@ class NonAnsiCharacter(Change):
 class ChangeLineEnding(Change):
 	def desc(self):
 		return "Unix line-ending"
+	def derivedApply(self, inp):
+		return 1, inp[:self.idx] + "\r\n" + inp[self.idx+1:]
 
 c = Cleaner(files, outdir)
 
