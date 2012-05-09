@@ -2,6 +2,7 @@
 #replace utf-quotes with ansi quotes
 #replace word hyphen with -
 #warn for any non-ansi character.
+#Remove trailing lines from input files.
 
 import sys
 import fnmatch #for unix-shell-style support in file matches.
@@ -64,10 +65,8 @@ def getRootFrame():
 
 	canvas.config(scrollregion=canvas.bbox("all"))
 
-	#root.mainloop()
 	return root, frame, canvas
 
-#getRootFrame()[0].mainloop()
 
 class Cleaner(object):
 	def __init__(self, files, outdir):
@@ -78,25 +77,7 @@ class Cleaner(object):
 	def showUi(self):
 		global row
 		changes = self.getChanges()
-		#import Tkinter as Tk
-		#root = Tk.Tk()
-		#scrollbar = AutoScrollbar(root)#Tk.Scrollbar(root)
-		#scrollbar.grid(row=0, column=1, stick=Tk.N+Tk.S)
-		#canvas = Tk.Canvas(root, yscrollcommand=scrollbar.set)
-		#canvas.grid(row=0, column=0, sticky=Tk.N+Tk.S+Tk.E+Tk.W)
-		#frame = Tk.Frame(canvas)
-		#frame.pack(side=Tk.LEFT)
 
-
-		#frame.rowconfigure(1, weight=1)
-		#frame.columnconfigure(1, weight=1)
-		#canvas.create_window(0, 0, anchor=Tk.NW, window=frame)
-
-		#frame.update_idletasks()
-		#scrollbar.config(command=canvas.yview)
-		#root.grid_rowconfigure(0, weight=1)
-		#root.grid_columnconfigure(0, weight=1)
-		#canvas.config(scrollregion=canvas.bbox("all"))
 		root, frame, canvas = getRootFrame()
 		row = 0
 		for fChangeSet in changes.getFileChangeSets():
@@ -125,23 +106,24 @@ class Cleaner(object):
 					lbl = Label(cFrame, text=txt, underline=underlineIdx)
 					lbl.grid(row=0, column=1, sticky=W)
 				mkCheck(change)
-			#fFrame.pack()
 			fFrame.grid(row=row, column=0, sticky=W)
 			row += 1
 
-		applyBtn = Button(root, text="Apply", fg="black", command=changes.applyChanges)
+		def applyChangesAndQuit():
+			changes.applyChanges()
+			root.destroy()
+		applyBtn = Button(root, text="Apply", fg="black", command=applyChangesAndQuit)
 		applyBtn.grid(row=row, column=0, sticky=W, padx=100)
-		cancelBtn = Button(root, text="Cancel", fg="black", command=lambda:None)
+		cancelBtn = Button(root, text="Cancel", fg="black", command=root.destroy)
 		cancelBtn.grid(row=row, column=0, sticky=E, padx=100)
 		frame.update_idletasks()
 		canvas.config(scrollregion=canvas.bbox("all"))
 		root.mainloop()
-		#root.destroy()
 
 class DirChangeSet(object):
 	@classmethod
 	def fromFiles(cls, files, outdir):
-		return cls([FileChangeSet(i) for i in files], outdir)
+		return cls([FileChangeSet(i, os.path.join(outdir, os.path.split(i)[1])) for i in files], outdir)
 	def __init__(self, fileChanges, outdir):
 		self.fileChanges = fileChanges
 		self.outdir = outdir
@@ -158,8 +140,9 @@ class DirChangeSet(object):
 			fSet.applyChanges()
 
 class FileChangeSet(object):
-	def __init__(self, fName):
+	def __init__(self, fName, outName):
 		self.fName, self.content = fName, open(fName).read()
+		self.outName = outName
 		self.changes = []
 		self.findChanges()
 	def __repr__(self):
@@ -175,6 +158,7 @@ class FileChangeSet(object):
 		for c in self.changes:
 			addOffset, self.content = c.applyChanges(offset, self.content)
 			offset += addOffset
+		open(self.outName, "w").write(self.content)
 
 	def addChange(self, change):
 		self.changes.append(change)
@@ -227,13 +211,21 @@ class Change(object):
 class UnicodeDoubleQuote(Change):
 	def desc(self):
 		return "Unicode double quote"
+	def derivedApply(self, inp):
+		return -1, inp[:self.idx] + '"' + inp[self.idx+2:]
 
 class UnicodeSingleQuote(Change):
 	def desc(self):
 		return "Unicode quote"
+	def derivedApply(self, inp):
+		return -1, inp[:self.idx] + '"' + inp[self.idx+2:]
+
 class NonAnsiCharacter(Change):
 	def desc(self):
 		return "Non-ansi character (%s)" %self.getChar()
+	def derivedApply(self, inp):
+		return -1, inp[:self.idx] + inp[self.idx+1:]
+
 class ChangeLineEnding(Change):
 	def desc(self):
 		return "Unix line-ending"
