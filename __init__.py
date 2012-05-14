@@ -5,6 +5,8 @@
 #X Remove trailing lines from input files
 #  Note: Might override warning for non-windows line endings when the last line is empty.
 #X remove trailing spaces at end of lines
+#Make it possible to specify an output directory
+#Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
 
 import sys
 import fnmatch #for unix-shell-style support in file matches.
@@ -105,9 +107,10 @@ class Cleaner(object):
                         check.select()
                     check.grid(row=0, column=0, sticky=W, padx=16)
                     txt = change.detailDesc()
-                    underlineIdx = txt.rfind("_")
-                    if underlineIdx != -1:
-                        txt = txt[:underlineIdx] + txt[underlineIdx+1:]
+                    underlineIdx = -1
+                    #underlineIdx = txt.rfind("_")
+                    #if underlineIdx != -1:
+                    #    txt = txt[:underlineIdx] + txt[underlineIdx+1:]
                     lbl = Label(cFrame, text=txt, underline=underlineIdx)
                     lbl.grid(row=0, column=1, sticky=W)
                 mkCheck(change)
@@ -218,7 +221,7 @@ class Change(object):
     def lineOffset(self):
         return len(self.fChangeSet.getStr()[:self.idx].split("\n")[-1])
     def lineValue(self):
-        return self.fChangeSet.getStr().split("\n")[self.lineNo()]
+        return self.fChangeSet.getStr().split("\n")[self.lineNo()].replace("\r", "")
     def __repr__(self):
         return "Change(%s) at %i" %("Y" if self.do else "N", self.idx)
     def desc(self):
