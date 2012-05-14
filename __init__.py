@@ -1,9 +1,10 @@
-#replace unix line endings ("\n") with Windows line endings ("\r\n")
-#replace utf-quotes with ansi quotes
-#replace word hyphen with -
-#warn for any non-ansi character.
-#Remove trailing lines from input files.
-#remove trailing spaces at end of lines
+#X replace unix line endings ("\n") with Windows line endings ("\r\n")
+#X replace utf-quotes with ansi quotes
+#X replace word hyphen with -
+#X warn for any non-ansi character.
+#X Remove trailing lines from input files
+#  Note: Might override warning for non-windows line endings when the last line is empty.
+#X remove trailing spaces at end of lines
 
 import sys
 import fnmatch #for unix-shell-style support in file matches.
@@ -146,7 +147,7 @@ class DirChangeSet(object):
 class FileChangeSet(object):
     def __init__(self, fName, outName, matchers=None):
         self.matchers = matchers if matchers is not None else Change.all
-        self.fName, self.content = fName, open(fName, "rb").read().decode()
+        self.fName, self.content = fName, open(fName, "rb").read().decode("cp437")
         self.outName = outName
         self.changes = []
         self.findChanges()
@@ -167,13 +168,15 @@ class FileChangeSet(object):
         open(self.outName, "wb").write(self.content.encode())
 
     def nextLineEnding(self, idx):
-        n = self.content[idx+1:].find("\n")
-        r = self.content[idx+1:].find("\r")
-        if n >= 0 and r >= 0: return min(n, r)
+        n = self.content[idx:].find("\n")
+        r = self.content[idx:].find("\r")
+        if n >= 0 and r >= 0: return idx+min(n, r)
         elif r >= 0:
-            return r
+            return idx+r
+        elif n >= 0:
+            return idx+n
         else:
-            return n
+            return -1
         
     def addChange(self, change):
         self.changes.append(change)
@@ -244,6 +247,7 @@ RawSequenceMatch("\x20\x1D", '"', "Unicode double quote")
 
 RawSequenceMatch("\x20\x18", '"', "Unicode quotation mark")
 RawSequenceMatch("\x20\x19", '"', "Unicode quotation mark")
+RawSequenceMatch("\x20\x14", '-', "Unicode hyphen")
 
 class NonAnsiCharacter(Change):
     @staticmethod
@@ -255,17 +259,6 @@ class NonAnsiCharacter(Change):
         return -1, inp[:self.idx] + inp[self.idx+1:]
         
 Change.all.append(NonAnsiCharacter)
-
-class ChangeLineEnding(Change):
-    @staticmethod
-    def doesMatch(cSet, idx):
-        return cSet.getStr()[idx] == "\n" and (idx == 0 or cSet.getStr()[idx-1] != "\r")
-    def desc(self):
-        return "Unix line-ending"
-    def derivedApply(self, inp):
-        return 1, inp[:self.idx] + "\r\n" + inp[self.idx+1:]
-       
-Change.all.append(ChangeLineEnding)
 
 class TrailingWS(Change):
     @staticmethod
@@ -285,6 +278,31 @@ class TrailingWS(Change):
         return -len(match), inp[:self.idx] + inp[self.idx + len(match):]
         
 Change.all.append(TrailingWS)
+
+class TrailingLine(TrailingWS):
+    @staticmethod
+    def doesMatch(cSet, idx):
+        mLen = cSet.getStr()[idx:idx+2] == "\r\n" or cSet.getStr()[idx] == "\n"
+        mLen += TrailingWS.doesMatch(cSet, idx+mLen)
+        return mLen if idx+mLen == len(cSet.getStr()) else 0
+    def desc(self):
+        return "Empty line at end of file"
+    def derivedApply(self, inp):
+        mLen = self.doesMatch(self.fChangeSet, self.idx)
+        return -mLen, inp[:self.idx]
+        
+Change.all.append(TrailingLine)
+
+class ChangeLineEnding(Change):
+    @staticmethod
+    def doesMatch(cSet, idx):
+        return cSet.getStr()[idx] == "\n" and (idx == 0 or cSet.getStr()[idx-1] != "\r")
+    def desc(self):
+        return "Unix line-ending"
+    def derivedApply(self, inp):
+        return 1, inp[:self.idx] + "\r\n" + inp[self.idx+1:]
+       
+Change.all.append(ChangeLineEnding)
 
 c = Cleaner(files, outdir)
 
