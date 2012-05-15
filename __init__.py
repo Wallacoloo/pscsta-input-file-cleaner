@@ -10,6 +10,8 @@
 #X Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
 #X Set the window title
 
+helpStr = "usage: python __init__.py file1 [file2 [...]]"
+
 import sys
 import glob #for windows argument expanding.
 import os
@@ -19,12 +21,14 @@ except ImportError: #python 3
     from tkinter import *
 
 unparsedCmds = sys.argv[1:]
-print(unparsedCmds)
+
+if len(unparsedCmds) == 0:
+    print(helpStr)
+    sys.exit(1)
+
 files = []
 for a in unparsedCmds:
     files.extend(glob.glob(a))
-print(files)
-
 outdir = "output"
 
 #AutoScrollbar from http://effbot.org/zone/tkinter-autoscrollbar.htm
