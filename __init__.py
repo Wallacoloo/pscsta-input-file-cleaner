@@ -1,4 +1,5 @@
-#usage: python __init__.py file1 [file2 [...]]
+helpStr = "usage: python __init__.py [--outdir=output] file1 [file2 [...]]"
+
 #X replace unix line endings ("\n") with Windows line endings ("\r\n")
 #X replace utf-quotes with ansi quotes
 #X replace word hyphen with -
@@ -9,8 +10,6 @@
 #Make it possible to specify an output directory
 #X Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
 #X Set the window title
-
-helpStr = "usage: python __init__.py file1 [file2 [...]]"
 
 import sys
 import glob #for windows argument expanding.
@@ -26,10 +25,16 @@ if len(unparsedCmds) == 0:
     print(helpStr)
     sys.exit(1)
 
+outdir = "output"
 files = []
 for a in unparsedCmds:
+    if a[:1] == "-":
+        if a[1:1+len("-outdir=")] == "-outdir=":
+            outdir = a[len("--outdir="):]
+        else:
+            print("unable to handle argument %s" %a)
+            sys.exit(1)
     files.extend(glob.glob(a))
-outdir = "output"
 
 #AutoScrollbar from http://effbot.org/zone/tkinter-autoscrollbar.htm
 class AutoScrollbar(Scrollbar):
