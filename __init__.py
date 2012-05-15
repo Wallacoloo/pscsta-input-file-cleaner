@@ -6,10 +6,11 @@
 #  Note: Might override warning for non-windows line endings when the last line is empty.
 #X remove trailing spaces at end of lines
 #Make it possible to specify an output directory
-#Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
+#X Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
+#Set the window title
 
 import sys
-import fnmatch #for unix-shell-style support in file matches.
+import glob #for windows argument expanding.
 import os
 try:
     from Tkinter import *
@@ -18,8 +19,11 @@ except ImportError: #python 3
 
 unparsedCmds = sys.argv[1:]
 print(unparsedCmds)
+files = []
+for a in unparsedCmds:
+    files.extend(glob.glob(a))
+print(files)
 
-files = unparsedCmds
 outdir = "output"
 
 #AutoScrollbar from http://effbot.org/zone/tkinter-autoscrollbar.htm
