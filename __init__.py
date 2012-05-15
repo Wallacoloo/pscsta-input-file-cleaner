@@ -1,3 +1,4 @@
+#usage: python __init__.py file1 [file2 [...]]
 #X replace unix line endings ("\n") with Windows line endings ("\r\n")
 #X replace utf-quotes with ansi quotes
 #X replace word hyphen with -
@@ -7,7 +8,7 @@
 #X remove trailing spaces at end of lines
 #Make it possible to specify an output directory
 #X Make *.dat argument possible on Windows (just expand *all* file arguments using fnmatch. Should work on Unix still)
-#Set the window title
+#X Set the window title
 
 import sys
 import glob #for windows argument expanding.
@@ -90,6 +91,7 @@ class Cleaner(object):
         changes = self.getChanges()
 
         root, frame, canvas = getRootFrame()
+        root.wm_title("PSCSTA Input File Cleaner")
         row = 0
         for fChangeSet in changes.getFileChangeSets():
             fFrame = Frame(frame)
