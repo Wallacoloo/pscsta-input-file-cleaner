@@ -1,3 +1,4 @@
+#!python
 helpStr = "usage: python __init__.py [--outdir=output] file1 [file2 [...]]"
 
 #X replace unix line endings ("\n") with Windows line endings ("\r\n")
